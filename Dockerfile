@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ros:noetic-ros-base
 
 # Avoid interactive dialog during package installation
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 DEBIAN_FRONTEND=noninteractive
@@ -62,26 +62,14 @@ RUN cd /root/ros2_humble \
     && colcon build --symlink-install
 
 
-# Add the ROS 1 repository for Noetic
-RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros1-latest.list'
-RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add -
-
-# Install ROS 1 Noetic (Desktop Full)
-RUN apt-get update && apt-get install -y \
-    ros-noetic-desktop-full \
-    && rm -rf /var/lib/apt/lists/*
-
-
 RUN cd /root \
     && mkdir -p /root/bridge_ws/src \
     && cd /root/bridge_ws/src \
     && git clone https://github.com/ros2/ros1_bridge.git \
     && cd /root/bridge_ws \
-    && colcon build --symlink-install --packages-skip ros1_bridge
+    && /bin/bash -c "source /opt/ros/noetic/setup.bash && source /root/ros2_humble/install/setup.bash && colcon build --symlink-install --packages-skip ros1_bridge"
 
-# Source ROS1 environment and build ros1_bridge
-RUN source /opt/ros/noetic/setup.bash \
-    && source /root/ros2_humble/install/setup.bash \
-    && cd /root/bridge_ws \
-    && colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure
+# Source ROS1 and ROS2 environments and build ros1_bridge
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && source /root/ros2_humble/install/setup.bash && cd /root/bridge_ws && colcon build --symlink-install --packages-select ros1_bridge --cmake-force-configure"
+
 CMD ["bash"]
